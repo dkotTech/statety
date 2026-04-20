@@ -97,16 +97,20 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (_
 	}
 
 	for {
-		if _, ok := m.setup.final[currentState]; ok {
-			return Final, nil
-		}
-
 		route := m.setup.Config[currentState]
+
+		if _, ok := m.setup.stop[currentState]; ok {
+			return Stop, nil
+		}
 
 		if _, ok := m.setup.save[currentState]; ok {
 			if err = route.Save(ctx, p); err != nil {
 				return Empty, err
 			}
+		}
+
+		if _, ok := m.setup.final[currentState]; ok {
+			return Final, nil
 		}
 
 		if m.callbackProvider != nil {
@@ -129,10 +133,6 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (_
 			if err = m.callbackProvider.After(ctx, event, newState); err != nil {
 				return Empty, err
 			}
-		}
-
-		if _, ok := m.setup.stop[newState]; ok {
-			return Stop, nil
 		}
 
 		currentState = newState
