@@ -245,6 +245,7 @@ var config = statety.Setup[State, Event, *Order]{
 	},
 }
 
+// go run examples/viz/main.go > /tmp/fsm.dot && dot -T=svg -o=fsm.svg /tmp/fsm.dot
 func main() {
 	fmt.Println(statety.DOT(config))
 }
