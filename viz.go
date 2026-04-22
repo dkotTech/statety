@@ -3,7 +3,6 @@ package statety
 import (
 	"fmt"
 	"strings"
-	"sync"
 )
 
 // DOT returns a Graphviz DOT representation of the state machine.
@@ -12,7 +11,7 @@ import (
 //   - regular state:  rounded box, blue fill
 //   - final state:    green fill, double border
 //   - save state:     dashed border (route.Save != nil, combinable with final)
-func DOT[State comparable, Event comparable, Payload sync.Locker](setup Setup[State, Event, Payload]) string {
+func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload]) string {
 	final := make(map[State]bool, len(setup.FinalStates))
 	for _, s := range setup.FinalStates {
 		final[s] = true

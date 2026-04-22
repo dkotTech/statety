@@ -3,12 +3,6 @@ package statety
 import (
 	"context"
 	"fmt"
-	"sync"
-)
-
-const (
-	Empty Result = iota
-	Final
 )
 
 type (
@@ -36,16 +30,14 @@ type (
 		Next map[Event]State
 	}
 
-	Machine[State comparable, Event comparable, Payload sync.Locker] struct {
+	Machine[State comparable, Event comparable, Payload any] struct {
 		setup            Setup[State, Event, Payload]
 		callbackProvider CallbackProvider[State, Event]
 		converter        Converter[State, Event, Payload]
 	}
-
-	Result int
 )
 
-func NewMachine[State comparable, Event comparable, Payload sync.Locker](setup Setup[State, Event, Payload], callbackProvider CallbackProvider[State, Event], converter Converter[State, Event, Payload]) (empty *Machine[State, Event, Payload], _ error) {
+func NewMachine[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload], callbackProvider CallbackProvider[State, Event], converter Converter[State, Event, Payload]) (empty *Machine[State, Event, Payload], _ error) {
 	setup.final = make(map[State]struct{})
 	for _, state := range setup.FinalStates {
 		setup.final[state] = struct{}{}
@@ -64,62 +56,59 @@ func NewMachine[State comparable, Event comparable, Payload sync.Locker](setup S
 	}, nil
 }
 
-func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (_ Result, err error) {
-	p.Lock()
-	defer p.Unlock()
-
+func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (err error) {
 	currentState := m.setup.StartState
 
 	if m.converter != nil {
 		currentState, err = m.converter.CurrentState(ctx, p)
 		if err != nil {
-			return Empty, err
+			return err
 		}
 	}
 
 	for {
 		if err := ctx.Err(); err != nil {
-			return Empty, err
+			return err
 		}
 
 		route, ok := m.setup.Config[currentState]
 		if !ok {
-			return Empty, fmt.Errorf("no step for state: %v", currentState)
+			return fmt.Errorf("no step for state: %v", currentState)
 		}
 
 		if route.Save != nil {
 			if err = route.Save(ctx, p); err != nil {
-				return Empty, err
+				return err
 			}
 		}
 
 		if _, ok := m.setup.final[currentState]; ok {
-			return Final, nil
+			return nil
 		}
 
 		if m.callbackProvider != nil {
 			if err = m.callbackProvider.Before(ctx, currentState); err != nil {
-				return Empty, err
+				return err
 			}
 		}
 
 		if route.Do == nil {
-			return Empty, fmt.Errorf("no do function for state: %v", currentState)
+			return fmt.Errorf("no do function for state: %v", currentState)
 		}
 
 		event, err := route.Do(ctx, p)
 		if err != nil {
-			return Empty, err
+			return err
 		}
 
 		newState, ok := route.Next[event]
 		if !ok {
-			return Empty, fmt.Errorf("no transition from state %v on event %v", currentState, event)
+			return fmt.Errorf("no transition from state %v on event %v", currentState, event)
 		}
 
 		if m.callbackProvider != nil {
 			if err = m.callbackProvider.After(ctx, event, newState); err != nil {
-				return Empty, err
+				return err
 			}
 		}
 

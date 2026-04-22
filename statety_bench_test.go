@@ -2,7 +2,6 @@ package statety_test
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	"github.com/dkotTech/statety"
@@ -23,9 +22,7 @@ const (
 	evDone
 )
 
-type benchPayload struct {
-	sync.Mutex
-}
+type benchPayload struct{}
 
 func BenchmarkMachineWork(b *testing.B) {
 	setup := statety.Setup[benchState, benchEvent, *benchPayload]{
@@ -61,7 +58,7 @@ func BenchmarkMachineWork(b *testing.B) {
 
 	for b.Loop() {
 		p := &benchPayload{}
-		if _, err := m.Work(ctx, p); err != nil {
+		if err := m.Work(ctx, p); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -102,7 +99,7 @@ func BenchmarkMachineWorkParallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			p := &benchPayload{}
-			if _, err := m.Work(ctx, p); err != nil {
+			if err := m.Work(ctx, p); err != nil {
 				b.Fatal(err)
 			}
 		}

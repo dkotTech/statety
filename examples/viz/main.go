@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/dkotTech/statety"
 )
@@ -12,9 +11,7 @@ type (
 	State string
 	Event string
 
-	Order struct {
-		sync.Mutex
-	}
+	Order struct{}
 )
 
 const (

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/dkotTech/statety"
 )
@@ -19,7 +18,6 @@ type (
 		Amount      float64
 		Attempts    int
 		TrackingNum string
-		sync.Mutex
 	}
 )
 
@@ -153,15 +151,14 @@ func main() {
 		fmt.Println("ошибка:", err)
 		return
 	}
-	result, err := m.Work(context.Background(), order)
+
+	err = m.Work(context.Background(), order)
 	if err != nil {
 		fmt.Println("ошибка:", err)
 		return
 	}
 
-	if result == statety.Final {
-		fmt.Printf("=== заказ #%d доставлен (трек: %s) ===\n", order.ID, order.TrackingNum)
-	}
+	fmt.Printf("=== заказ #%d доставлен (трек: %s) ===\n", order.ID, order.TrackingNum)
 
 	fmt.Println(statety.DOT(config))
 }
