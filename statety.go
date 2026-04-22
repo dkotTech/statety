@@ -21,8 +21,6 @@ type (
 		FinalStates []State
 
 		Config map[State]Steps[State, Event, Payload]
-
-		final map[State]struct{}
 	}
 
 	Steps[State comparable, Event comparable, Payload any] struct {
@@ -35,20 +33,22 @@ type (
 		setup            Setup[State, Event, Payload]
 		callbackProvider CallbackProvider[State, Event]
 		converter        Converter[State, Event, Payload]
+
+		final map[State]struct{}
 	}
 )
 
 func NewMachine[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload], callbackProvider CallbackProvider[State, Event], converter Converter[State, Event, Payload]) (*Machine[State, Event, Payload], error) {
-	setup.final = make(map[State]struct{}, len(setup.FinalStates))
+	final := make(map[State]struct{}, len(setup.FinalStates))
 	for _, state := range setup.FinalStates {
-		setup.final[state] = struct{}{}
+		final[state] = struct{}{}
 	}
 
 	known := func(s State) bool {
 		if _, ok := setup.Config[s]; ok {
 			return true
 		}
-		_, ok := setup.final[s]
+		_, ok := final[s]
 		return ok
 	}
 
@@ -59,7 +59,7 @@ func NewMachine[State comparable, Event comparable, Payload any](setup Setup[Sta
 	}
 
 	for state, route := range setup.Config {
-		_, isFinal := setup.final[state]
+		_, isFinal := final[state]
 
 		switch {
 		case isFinal && route.Do != nil:
@@ -83,6 +83,7 @@ func NewMachine[State comparable, Event comparable, Payload any](setup Setup[Sta
 		setup:            setup,
 		callbackProvider: callbackProvider,
 		converter:        converter,
+		final:            final,
 	}, nil
 }
 
@@ -103,7 +104,7 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (e
 
 		route, ok := m.setup.Config[currentState]
 		if !ok {
-			if _, isFinal := m.setup.final[currentState]; isFinal {
+			if _, isFinal := m.final[currentState]; isFinal {
 				return nil
 			}
 			return fmt.Errorf("no step for state: %v", currentState)
@@ -115,7 +116,7 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (e
 			}
 		}
 
-		if _, ok := m.setup.final[currentState]; ok {
+		if _, ok := m.final[currentState]; ok {
 			return nil
 		}
 
