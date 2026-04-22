@@ -41,10 +41,7 @@ func BenchmarkMachineWork(b *testing.B) {
 				Do:   func(ctx context.Context, p *benchPayload) (benchEvent, error) { return evDone, nil },
 				Next: map[benchEvent]benchState{evDone: stateDone},
 			},
-			stateDone: {
-				Do:   func(ctx context.Context, p *benchPayload) (benchEvent, error) { return evDone, nil },
-				Next: map[benchEvent]benchState{},
-			},
+			stateDone: {},
 		},
 	}
 
@@ -81,10 +78,7 @@ func BenchmarkMachineWorkParallel(b *testing.B) {
 				Do:   func(ctx context.Context, p *benchPayload) (benchEvent, error) { return evDone, nil },
 				Next: map[benchEvent]benchState{evDone: stateDone},
 			},
-			stateDone: {
-				Do:   func(ctx context.Context, p *benchPayload) (benchEvent, error) { return evDone, nil },
-				Next: map[benchEvent]benchState{},
-			},
+			stateDone: {},
 		},
 	}
 

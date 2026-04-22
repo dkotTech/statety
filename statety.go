@@ -2,6 +2,7 @@ package statety
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -37,16 +38,45 @@ type (
 	}
 )
 
-func NewMachine[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload], callbackProvider CallbackProvider[State, Event], converter Converter[State, Event, Payload]) (empty *Machine[State, Event, Payload], _ error) {
-	setup.final = make(map[State]struct{})
+func NewMachine[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload], callbackProvider CallbackProvider[State, Event], converter Converter[State, Event, Payload]) (*Machine[State, Event, Payload], error) {
+	setup.final = make(map[State]struct{}, len(setup.FinalStates))
 	for _, state := range setup.FinalStates {
 		setup.final[state] = struct{}{}
 	}
 
-	for state, route := range setup.Config {
-		if _, found := setup.final[state]; !found && route.Do == nil {
-			return empty, fmt.Errorf("no do function state: %v", state)
+	known := func(s State) bool {
+		if _, ok := setup.Config[s]; ok {
+			return true
 		}
+		_, ok := setup.final[s]
+		return ok
+	}
+
+	var errs []error
+
+	if !known(setup.StartState) {
+		errs = append(errs, fmt.Errorf("start state %v is not present in Config or FinalStates", setup.StartState))
+	}
+
+	for state, route := range setup.Config {
+		_, isFinal := setup.final[state]
+
+		switch {
+		case isFinal && route.Do != nil:
+			errs = append(errs, fmt.Errorf("final state %v must not have Do: it will never run", state))
+		case !isFinal && route.Do == nil:
+			errs = append(errs, fmt.Errorf("non-final state %v has no Do function", state))
+		}
+
+		for event, target := range route.Next {
+			if !known(target) {
+				errs = append(errs, fmt.Errorf("state %v on event %v transitions to unknown state %v", state, event, target))
+			}
+		}
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
 	}
 
 	return &Machine[State, Event, Payload]{
@@ -73,6 +103,9 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (e
 
 		route, ok := m.setup.Config[currentState]
 		if !ok {
+			if _, isFinal := m.setup.final[currentState]; isFinal {
+				return nil
+			}
 			return fmt.Errorf("no step for state: %v", currentState)
 		}
 
