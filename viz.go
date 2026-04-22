@@ -2,7 +2,6 @@ package statety
 
 import (
 	"fmt"
-	"maps"
 	"strings"
 	"sync"
 )
@@ -11,14 +10,19 @@ import (
 //
 // Node legend:
 //   - regular state:  rounded box, blue fill
-//   - start state:    bold border
 //   - final state:    green fill, double border
-//   - stop state:     orange fill
-//   - save state:     dashed border (combinable with above)
+//   - save state:     dashed border (route.Save != nil, combinable with final)
 func DOT[State comparable, Event comparable, Payload sync.Locker](setup Setup[State, Event, Payload]) string {
-	final := maps.Collect(allKeys[State, bool](setup.FinalStates, true))
-	stop := maps.Collect(allKeys[State, bool](setup.StopStates, true))
-	save := maps.Collect(allKeys[State, bool](setup.SaveStates, true))
+	final := make(map[State]bool, len(setup.FinalStates))
+	for _, s := range setup.FinalStates {
+		final[s] = true
+	}
+	save := make(map[State]bool, len(setup.Config))
+	for state, steps := range setup.Config {
+		if steps.Save != nil {
+			save[state] = true
+		}
+	}
 
 	var b strings.Builder
 
@@ -41,25 +45,18 @@ func DOT[State comparable, Event comparable, Payload sync.Locker](setup Setup[St
 			"shape=box",
 		}
 
-		var styles []string
-		styles = append(styles, "rounded", "filled")
+		styles := []string{"rounded", "filled"}
 		if save[s] {
 			styles = append(styles, "dashed")
 		}
 
-		switch {
-		case final[s]:
+		if final[s] {
 			attrs = append(attrs,
 				"peripheries=2",
 				"fillcolor=\"#D6EAD6\"",
 				"color=\"#2E7D32\"",
 			)
-		case stop[s]:
-			attrs = append(attrs,
-				"fillcolor=\"#FDE8CC\"",
-				"color=\"#BF6000\"",
-			)
-		default:
+		} else {
 			attrs = append(attrs,
 				"fillcolor=\"#DDEEFF\"",
 				"color=\"#336699\"",
@@ -72,9 +69,6 @@ func DOT[State comparable, Event comparable, Payload sync.Locker](setup Setup[St
 
 	writeNode(setup.StartState)
 	for _, s := range setup.FinalStates {
-		writeNode(s)
-	}
-	for _, s := range setup.StopStates {
 		writeNode(s)
 	}
 	for state, steps := range setup.Config {
@@ -101,16 +95,14 @@ const legend = `
 		margin=12;
 
 		__l_regular [label="regular", shape=box, style="rounded,filled", fillcolor="#DDEEFF", color="#336699"];
-		__l_final    [label="final",   shape=box, style="rounded,filled", fillcolor="#D6EAD6", color="#2E7D32", peripheries=2];
-		__l_stop     [label="stop",    shape=box, style="rounded,filled", fillcolor="#FDE8CC", color="#BF6000"];
-		__l_save     [label="save",    shape=box, style="rounded,filled,dashed", fillcolor="#DDEEFF", color="#336699"];
+		__l_final   [label="final",   shape=box, style="rounded,filled", fillcolor="#D6EAD6", color="#2E7D32", peripheries=2];
+		__l_save    [label="save",    shape=box, style="rounded,filled,dashed", fillcolor="#DDEEFF", color="#336699"];
 
-		__l_regular -> __l_final   [style=invis];
-		__l_final   -> __l_stop    [style=invis];
-		__l_stop    -> __l_save    [style=invis];
+		__l_regular -> __l_final [style=invis];
+		__l_final   -> __l_save  [style=invis];
 	}
 `
 
 func dotID[T comparable](v T) string {
-	return fmt.Sprintf("state_%s", fmt.Sprintf("%v", v))
+	return fmt.Sprintf("s%x", fmt.Sprintf("%v", v))
 }

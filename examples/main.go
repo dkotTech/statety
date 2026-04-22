@@ -44,8 +44,6 @@ const (
 var config = statety.Setup[State, Event, *Order]{
 	StartState:  StatePending,
 	FinalStates: []State{StateDelivered, StateCancelled},
-	StopStates:  []State{StateShipping},
-	SaveStates:  []State{StateShipping, StateDelivered, StateCancelled},
 
 	Config: map[State]statety.Steps[State, Event, *Order]{
 		StatePending: {
@@ -161,11 +159,8 @@ func main() {
 		return
 	}
 
-	switch result {
-	case statety.Final:
+	if result == statety.Final {
 		fmt.Printf("=== заказ #%d доставлен (трек: %s) ===\n", order.ID, order.TrackingNum)
-	case statety.Stop:
-		fmt.Printf("=== заказ #%d отменён ===\n", order.ID)
 	}
 
 	fmt.Println(statety.DOT(config))

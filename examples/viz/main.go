@@ -84,20 +84,7 @@ var config = statety.Setup[State, Event, *Order]{
 		StateRefunded,
 		StateDisputeResolved,
 		StateCancelled,
-	},
-	StopStates: []State{
 		StateFraudBlocked,
-		StateDeliveryFailed,
-	},
-	SaveStates: []State{
-		StateConfirmed,
-		StateWarehousePacked,
-		StateReadyToShip,
-		StateOutForDelivery,
-		StateDelivered,
-		StateReturnReceived,
-		StateRefunded,
-		StateCancelled,
 	},
 
 	Config: map[State]statety.Steps[State, Event, *Order]{
