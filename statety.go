@@ -24,9 +24,10 @@ type (
 	}
 
 	Steps[State comparable, Event comparable, Payload any] struct {
-		Do   func(ctx context.Context, payload Payload) (Event, error)
-		Save func(ctx context.Context, payload Payload) error
-		Next map[Event]State
+		SaveOnEnter func(ctx context.Context, payload Payload) error
+		Do          func(ctx context.Context, payload Payload) (Event, error)
+		SaveOnExit  func(ctx context.Context, payload Payload) error
+		Next        map[Event]State
 	}
 
 	Machine[State comparable, Event comparable, Payload any] struct {
@@ -110,8 +111,8 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (e
 			return fmt.Errorf("no step for state: %v", currentState)
 		}
 
-		if route.Save != nil {
-			if err = route.Save(ctx, p); err != nil {
+		if route.SaveOnEnter != nil {
+			if err = route.SaveOnEnter(ctx, p); err != nil {
 				return err
 			}
 		}
@@ -133,6 +134,12 @@ func (m *Machine[State, Event, Payload]) Work(ctx context.Context, p Payload) (e
 		event, err := route.Do(ctx, p)
 		if err != nil {
 			return err
+		}
+
+		if route.SaveOnExit != nil {
+			if err = route.SaveOnExit(ctx, p); err != nil {
+				return err
+			}
 		}
 
 		newState, ok := route.Next[event]

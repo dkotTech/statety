@@ -70,7 +70,7 @@ var config = statety.Setup[State, Event, *Order]{
 				o.TrackingNum = fmt.Sprintf("TRACK-%d", o.ID*100)
 				return EventShipped, nil
 			},
-			Save: func(ctx context.Context, payload *Order) error {
+			SaveOnEnter: func(ctx context.Context, payload *Order) error {
 				fmt.Printf("[save]")
 				return nil
 			},
@@ -93,20 +93,20 @@ var config = statety.Setup[State, Event, *Order]{
 				EventDelivered: StateDelivered,
 				EventCancelled: StateProcessing,
 			},
-			Save: func(ctx context.Context, payload *Order) error {
+			SaveOnEnter: func(ctx context.Context, payload *Order) error {
 				fmt.Printf("[save]")
 				return nil
 			},
 		},
 
 		StateDelivered: {
-			Save: func(ctx context.Context, payload *Order) error {
+			SaveOnEnter: func(ctx context.Context, payload *Order) error {
 				fmt.Printf("[save]")
 				return nil
 			},
 		},
 		StateCancelled: {
-			Save: func(ctx context.Context, payload *Order) error {
+			SaveOnEnter: func(ctx context.Context, payload *Order) error {
 				fmt.Printf("[save]")
 				return nil
 			},

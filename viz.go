@@ -10,7 +10,7 @@ import (
 // Node legend:
 //   - regular state:  rounded box, blue fill
 //   - final state:    green fill, double border
-//   - save state:     dashed border (route.Save != nil, combinable with final)
+//   - save state:     dashed border (route.SaveOnEnter != nil, combinable with final)
 func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload]) string {
 	final := make(map[State]bool, len(setup.FinalStates))
 	for _, s := range setup.FinalStates {
@@ -18,7 +18,7 @@ func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Eve
 	}
 	save := make(map[State]bool, len(setup.Config))
 	for state, steps := range setup.Config {
-		if steps.Save != nil {
+		if steps.SaveOnEnter != nil {
 			save[state] = true
 		}
 	}

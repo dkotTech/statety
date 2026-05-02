@@ -123,8 +123,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateConfirmed: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventStockAvailable:   StateWarehousePicking,
 				EventStockUnavailable: StateAwaitingStock,
@@ -145,15 +145,15 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateWarehousePacked: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventShipped: StateReadyToShip,
 			},
 		},
 		StateReadyToShip: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventShipped: StateInTransit,
 			},
@@ -174,8 +174,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateOutForDelivery: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventDelivered:      StateDelivered,
 				EventDeliveryFailed: StateDeliveryFailed,
@@ -188,8 +188,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateDelivered: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventReturnRequested: StateReturnRequested,
 				EventDisputeOpened:   StateDispute,
@@ -209,8 +209,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateReturnReceived: {
-			Do:   noop,
-			Save: save,
+			Do:          noop,
+			SaveOnEnter: save,
 			Next: map[Event]State{
 				EventRefundApproved: StateRefundProcessing,
 			},
@@ -222,9 +222,9 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateRefunded: {
-			Do:   noop,
-			Save: save,
-			Next: map[Event]State{},
+			Do:          noop,
+			SaveOnEnter: save,
+			Next:        map[Event]State{},
 		},
 		StateDispute: {
 			Do: noop,
@@ -238,9 +238,9 @@ var config = statety.Setup[State, Event, *Order]{
 			Next: map[Event]State{},
 		},
 		StateCancelled: {
-			Do:   noop,
-			Save: save,
-			Next: map[Event]State{},
+			Do:          noop,
+			SaveOnEnter: save,
+			Next:        map[Event]State{},
 		},
 	},
 }
