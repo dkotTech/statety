@@ -109,8 +109,9 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StatePaymentProcessing: {
-			Do:         noop,
-			SaveOnExit: saveExit,
+			Do:          noop,
+			SaveOnEnter: saveExit,
+			SaveOnExit:  saveExit,
 			Next: map[Event]State{
 				EventPaymentSuccess:  StateConfirmed,
 				EventPaymentDeclined: StatePaymentFailed,

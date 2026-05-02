@@ -2,26 +2,27 @@ package statety
 
 import (
 	"fmt"
+	"html"
 	"strings"
 )
 
 // DOT returns a Graphviz DOT representation of the state machine.
 //
-// Node legend:
-//   - regular state:    rounded box, blue fill
-//   - final state:      green fill, double border
-//   - SaveOnEnter state: dashed border (combinable with final)
-//   - SaveOnExit state:  bold border  (combinable with final and SaveOnEnter)
+// Node appearance (self-documenting, no legend):
+//   - regular state:     rounded box, blue fill
+//   - final state:       green fill, "◆ final" row
+//   - SaveOnEnter state: "↓ SaveOnEnter" row inside the node
+//   - SaveOnExit state:  "↑ SaveOnExit"  row inside the node
 func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload]) string {
 	final := make(map[State]bool, len(setup.FinalStates))
 	for _, s := range setup.FinalStates {
 		final[s] = true
 	}
-	save := make(map[State]bool, len(setup.Config))
+	saveEnter := make(map[State]bool, len(setup.Config))
 	saveExit := make(map[State]bool, len(setup.Config))
 	for state, steps := range setup.Config {
 		if steps.SaveOnEnter != nil {
-			save[state] = true
+			saveEnter[state] = true
 		}
 		if steps.SaveOnExit != nil {
 			saveExit[state] = true
@@ -29,7 +30,6 @@ func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Eve
 	}
 
 	var b strings.Builder
-
 	b.WriteString("digraph statety {\n")
 	b.WriteString("\trankdir=TB;\n")
 	b.WriteString("\tforcelabels=true;\n")
@@ -43,34 +43,38 @@ func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Eve
 		}
 		written[s] = true
 
-		label := fmt.Sprintf("%v", s)
-		attrs := []string{
-			fmt.Sprintf("label=%q", label),
-			"shape=box",
-		}
+		name := html.EscapeString(fmt.Sprintf("%v", s))
 
-		styles := []string{"rounded", "filled"}
-		if save[s] {
-			styles = append(styles, "dashed")
-		}
-		if saveExit[s] {
-			styles = append(styles, "bold")
-		}
-
+		fillColor, borderColor := "#DDEEFF", "#336699"
 		if final[s] {
-			attrs = append(attrs,
-				"peripheries=2",
-				"fillcolor=\"#D6EAD6\"",
-				"color=\"#2E7D32\"",
-			)
-		} else {
-			attrs = append(attrs,
-				"fillcolor=\"#DDEEFF\"",
-				"color=\"#336699\"",
-			)
+			fillColor, borderColor = "#D6EAD6", "#2E7D32"
 		}
 
-		attrs = append(attrs, fmt.Sprintf("style=%q", strings.Join(styles, ",")))
+		var lbl strings.Builder
+		lbl.WriteString(`<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">`)
+		fmt.Fprintf(&lbl, `<TR><TD><B>%s</B></TD></TR>`, name)
+		hasExtra := final[s] || saveEnter[s] || saveExit[s]
+		if hasExtra {
+			lbl.WriteString(`<HR/>`)
+			if final[s] {
+				lbl.WriteString(`<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#2E7D32">&#9670; final</FONT></TD></TR>`)
+			}
+			if saveEnter[s] {
+				lbl.WriteString(`<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444">&#8595; SaveOnEnter</FONT></TD></TR>`)
+			}
+			if saveExit[s] {
+				lbl.WriteString(`<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10" COLOR="#444444">&#8593; SaveOnExit</FONT></TD></TR>`)
+			}
+		}
+		lbl.WriteString(`</TABLE>`)
+
+		attrs := []string{
+			fmt.Sprintf("label=<%s>", lbl.String()),
+			"shape=box",
+			`style="rounded,filled"`,
+			fmt.Sprintf("fillcolor=%q", fillColor),
+			fmt.Sprintf("color=%q", borderColor),
+		}
 		fmt.Fprintf(&b, "\t%s [%s];\n", dotID(s), strings.Join(attrs, ", "))
 	}
 
@@ -87,30 +91,9 @@ func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Eve
 		}
 	}
 
-	b.WriteString(legend)
 	b.WriteString("}\n")
 	return b.String()
 }
-
-const legend = `
-	subgraph cluster_legend {
-		label="Legend";
-		fontname="Helvetica";
-		fontsize=12;
-		style="rounded";
-		color="#AAAAAA";
-		margin=12;
-
-		__l_regular    [label="regular",      shape=box, style="rounded,filled",            fillcolor="#DDEEFF", color="#336699"];
-		__l_final      [label="final",        shape=box, style="rounded,filled",            fillcolor="#D6EAD6", color="#2E7D32", peripheries=2];
-		__l_save_enter [label="SaveOnEnter",  shape=box, style="rounded,filled,dashed",     fillcolor="#DDEEFF", color="#336699"];
-		__l_save_exit  [label="SaveOnExit",   shape=box, style="rounded,filled,bold",       fillcolor="#DDEEFF", color="#336699"];
-
-		__l_regular    -> __l_final      [style=invis];
-		__l_final      -> __l_save_enter [style=invis];
-		__l_save_enter -> __l_save_exit  [style=invis];
-	}
-`
 
 func dotID[T comparable](v T) string {
 	return fmt.Sprintf("s%x", fmt.Sprintf("%v", v))
