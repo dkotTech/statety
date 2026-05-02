@@ -72,6 +72,7 @@ const (
 
 var noop = func(_ context.Context, _ *Order) (Event, error) { return "", nil }
 var save = func(_ context.Context, _ *Order) error { return nil }
+var saveExit = func(_ context.Context, _ *Order) error { return nil }
 
 var config = statety.Setup[State, Event, *Order]{
 	StartState: StateCreated,
@@ -108,7 +109,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StatePaymentProcessing: {
-			Do: noop,
+			Do:         noop,
+			SaveOnExit: saveExit,
 			Next: map[Event]State{
 				EventPaymentSuccess:  StateConfirmed,
 				EventPaymentDeclined: StatePaymentFailed,
@@ -139,7 +141,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateWarehousePicking: {
-			Do: noop,
+			Do:         noop,
+			SaveOnExit: saveExit,
 			Next: map[Event]State{
 				EventPickingDone: StateWarehousePacked,
 			},
@@ -159,7 +162,8 @@ var config = statety.Setup[State, Event, *Order]{
 			},
 		},
 		StateInTransit: {
-			Do: noop,
+			Do:         noop,
+			SaveOnExit: saveExit,
 			Next: map[Event]State{
 				EventCustomsCleared:  StateOutForDelivery,
 				EventCustomsRejected: StateCustomsHold,

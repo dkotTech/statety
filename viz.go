@@ -8,18 +8,23 @@ import (
 // DOT returns a Graphviz DOT representation of the state machine.
 //
 // Node legend:
-//   - regular state:  rounded box, blue fill
-//   - final state:    green fill, double border
-//   - save state:     dashed border (route.SaveOnEnter != nil, combinable with final)
+//   - regular state:    rounded box, blue fill
+//   - final state:      green fill, double border
+//   - SaveOnEnter state: dashed border (combinable with final)
+//   - SaveOnExit state:  bold border  (combinable with final and SaveOnEnter)
 func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Event, Payload]) string {
 	final := make(map[State]bool, len(setup.FinalStates))
 	for _, s := range setup.FinalStates {
 		final[s] = true
 	}
 	save := make(map[State]bool, len(setup.Config))
+	saveExit := make(map[State]bool, len(setup.Config))
 	for state, steps := range setup.Config {
 		if steps.SaveOnEnter != nil {
 			save[state] = true
+		}
+		if steps.SaveOnExit != nil {
+			saveExit[state] = true
 		}
 	}
 
@@ -47,6 +52,9 @@ func DOT[State comparable, Event comparable, Payload any](setup Setup[State, Eve
 		styles := []string{"rounded", "filled"}
 		if save[s] {
 			styles = append(styles, "dashed")
+		}
+		if saveExit[s] {
+			styles = append(styles, "bold")
 		}
 
 		if final[s] {
@@ -93,12 +101,14 @@ const legend = `
 		color="#AAAAAA";
 		margin=12;
 
-		__l_regular [label="regular", shape=box, style="rounded,filled", fillcolor="#DDEEFF", color="#336699"];
-		__l_final   [label="final",   shape=box, style="rounded,filled", fillcolor="#D6EAD6", color="#2E7D32", peripheries=2];
-		__l_save    [label="save",    shape=box, style="rounded,filled,dashed", fillcolor="#DDEEFF", color="#336699"];
+		__l_regular    [label="regular",      shape=box, style="rounded,filled",            fillcolor="#DDEEFF", color="#336699"];
+		__l_final      [label="final",        shape=box, style="rounded,filled",            fillcolor="#D6EAD6", color="#2E7D32", peripheries=2];
+		__l_save_enter [label="SaveOnEnter",  shape=box, style="rounded,filled,dashed",     fillcolor="#DDEEFF", color="#336699"];
+		__l_save_exit  [label="SaveOnExit",   shape=box, style="rounded,filled,bold",       fillcolor="#DDEEFF", color="#336699"];
 
-		__l_regular -> __l_final [style=invis];
-		__l_final   -> __l_save  [style=invis];
+		__l_regular    -> __l_final      [style=invis];
+		__l_final      -> __l_save_enter [style=invis];
+		__l_save_enter -> __l_save_exit  [style=invis];
 	}
 `
 

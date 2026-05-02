@@ -71,7 +71,11 @@ var config = statety.Setup[State, Event, *Order]{
 				return EventShipped, nil
 			},
 			SaveOnEnter: func(ctx context.Context, payload *Order) error {
-				fmt.Printf("[save]")
+				fmt.Printf("[save-enter]")
+				return nil
+			},
+			SaveOnExit: func(ctx context.Context, o *Order) error {
+				fmt.Printf("[save-exit трек: %s]", o.TrackingNum)
 				return nil
 			},
 			Next: map[Event]State{
@@ -89,25 +93,29 @@ var config = statety.Setup[State, Event, *Order]{
 				}
 				return EventDelivered, nil
 			},
+			SaveOnEnter: func(ctx context.Context, payload *Order) error {
+				fmt.Printf("[save-enter]")
+				return nil
+			},
+			SaveOnExit: func(ctx context.Context, payload *Order) error {
+				fmt.Printf("[save-exit]")
+				return nil
+			},
 			Next: map[Event]State{
 				EventDelivered: StateDelivered,
 				EventCancelled: StateProcessing,
-			},
-			SaveOnEnter: func(ctx context.Context, payload *Order) error {
-				fmt.Printf("[save]")
-				return nil
 			},
 		},
 
 		StateDelivered: {
 			SaveOnEnter: func(ctx context.Context, payload *Order) error {
-				fmt.Printf("[save]")
+				fmt.Printf("[save-enter]")
 				return nil
 			},
 		},
 		StateCancelled: {
 			SaveOnEnter: func(ctx context.Context, payload *Order) error {
-				fmt.Printf("[save]")
+				fmt.Printf("[save-enter]")
 				return nil
 			},
 		},
